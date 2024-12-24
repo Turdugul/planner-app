@@ -82,7 +82,7 @@ export default function Dashboard() {
 
       {/* Add a link to navigate back to the Home page */}
       <div className="mt-6 text-center">
-        <Link href="/">
+        <Link className="mt-4 inline-block bg-rose-500 text-white px-6 py-2 rounded hover:bg-rose-600" href="/">
 Back to Home
         </Link>
       </div>
