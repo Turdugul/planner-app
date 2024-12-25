@@ -3,7 +3,7 @@ import Link from 'next/link';  // Import Next.js Link
 export default function Home() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <h2 className="text-3xl font-bold text-center">Welcome to Planner!</h2>
+      <h2 className="text-3xl font-bold text-center">Welcome to Your Planner!</h2>
       <p className="text-center mt-4">Set your goals, plan your days, and reflect on the season. Explore the app:</p>
       
       <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 mt-6">
