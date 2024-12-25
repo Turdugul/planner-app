@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
 export default function ClientWrapper({
@@ -14,21 +14,20 @@ export default function ClientWrapper({
 
   useEffect(() => {
     setIsClient(true);
+    return () => setIsClient(false); // Cleanup on unmount
   }, []);
 
-  if (!isClient) return null; // Avoid rendering until the client is ready
+  if (!isClient) return <div>Loading...</div>; // Display a loading message
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={pathname}
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 50 }}
-        transition={{ duration: 0.5 }}
-      >
-        <main className="container mx-auto p-4">{children}</main>
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={pathname}
+      initial={{ opacity: 0, x: -50 }}  // Initial state of the page
+      animate={{ opacity: 1, x: 0 }}    // Animated state of the page
+      exit={{ opacity: 0, x: 50 }}      // Exit state of the page
+      transition={{ opacity: { duration: 0.4 }, x: { duration: 0.5 }}} // Transition duration
+    >
+      <main className="container mx-auto p-4 mb-16">{children}</main>
+    </motion.div>
   );
 }

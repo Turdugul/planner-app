@@ -1,34 +1,87 @@
-// /app/goals/page.tsx
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link'; // Import Link from Next.js
+import Link from 'next/link';
+import {
+  addGoalToFirestore,
+  getGoalsFromFirestore,
+  toggleGoalCompletion,
+  deleteGoalFromFirestore,
+} from '@/firebase/firestoreGoalsServices';
 
-type Goal = {
-  id: number;
+interface Goal {
+  id: string;
   text: string;
   completed: boolean;
-};
+}
 
 export default function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoal, setNewGoal] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const addGoal = () => {
+  // Fetch goals from Firestore when component mounts
+  useEffect(() => {
+    const fetchGoals = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedGoals = await getGoalsFromFirestore();
+        setGoals(fetchedGoals);
+      } catch (err) {
+        console.error("Error fetching goals: ", err);
+        setError('Failed to fetch goals. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGoals();
+  }, []);
+
+  const addGoal = async () => {
     if (newGoal.trim()) {
-      setGoals([...goals, { id: Date.now(), text: newGoal, completed: false }]);
-      setNewGoal('');
+      setError(null);
+      try {
+        const newGoalData = { text: newGoal, completed: false };
+        const newGoalId = await addGoalToFirestore(newGoalData);
+        if (newGoalId) {
+          setGoals([...goals, { id: newGoalId, ...newGoalData }]);
+        }
+        setNewGoal('');
+      } catch (err) {
+        console.error("Error adding goal: ", err);
+        setError('Failed to add goal. Please try again.');
+      }
     }
   };
 
-  const toggleGoal = (id: number) => {
-    setGoals(
-      goals.map((goal) =>
-        goal.id === id ? { ...goal, completed: !goal.completed } : goal
-      )
-    );
+  const toggleGoal = async (id: string, completed: boolean) => {
+    setError(null);
+    try {
+      await toggleGoalCompletion(id, !completed);
+      setGoals(
+        goals.map((goal) =>
+          goal.id === id ? { ...goal, completed: !completed } : goal
+        )
+      );
+    } catch (err) {
+      console.error("Error toggling goal completion: ", err);
+      setError('Failed to toggle goal. Please try again.');
+    }
+  };
+
+  const deleteGoal = async (id: string) => {
+    setError(null);
+    try {
+      await deleteGoalFromFirestore(id);
+      setGoals(goals.filter((goal) => goal.id !== id));
+    } catch (err) {
+      console.error("Error deleting goal: ", err);
+      setError('Failed to delete goal. Please try again.');
+    }
   };
 
   return (
@@ -41,6 +94,13 @@ export default function Goals() {
     >
       <h2 className="text-3xl font-bold text-center">🎯 Your Goals</h2>
 
+      {/* Error message */}
+      {error && <div className="text-red-500 text-center">{error}</div>}
+
+      {/* Loading state */}
+      {loading && <div className="text-center text-gray-500">Loading goals...</div>}
+
+      {/* Input for adding goals */}
       <div className="mb-6 flex justify-center space-x-4">
         <input
           type="text"
@@ -48,32 +108,62 @@ export default function Goals() {
           onChange={(e) => setNewGoal(e.target.value)}
           placeholder="Add a new goal..."
           className="p-2 border rounded"
+          aria-label="New goal input"
         />
         <button
           onClick={addGoal}
           className="bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600"
+          aria-label="Add goal"
         >
           Add Goal
         </button>
       </div>
 
-      <ul className="space-y-4">
+      {/* Goals list */}
+      <ul className="space-y-4  sm:w-[60%] mx-auto">
         {goals.map((goal) => (
           <motion.li
             key={goal.id}
-            className={`p-4 border rounded shadow-sm ${goal.completed ? 'line-through text-gray-500' : 'bg-rose-100'}`}
+            className={`p-4 border rounded shadow-sm flex items-center justify-between ${
+              goal.completed ? 'bg-gray-200 text-gray-500' : 'bg-rose-100'
+            }`}
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.3 }}
-            onClick={() => toggleGoal(goal.id)}
           >
-            {goal.text}
+            <span className={`flex-grow ${goal.completed ? 'line-through' : ''}`}>
+              {goal.text}
+            </span>
+            <div className="flex items-center space-x-4">
+              <input
+                type="checkbox"
+                checked={goal.completed}
+                onChange={() => toggleGoal(goal.id, goal.completed)}
+                className="cursor-pointer"
+                aria-label={`Mark goal "${goal.text}" as ${
+                  goal.completed ? 'incomplete' : 'complete'
+                }`}
+              />
+              <button
+                className="text-red-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteGoal(goal.id);
+                }}
+                aria-label={`Delete goal: ${goal.text}`}
+              >
+                🗑️
+              </button>
+            </div>
           </motion.li>
         ))}
       </ul>
 
       {/* Add a link to navigate back to the Home page */}
       <div className="mt-6 text-center">
-        <Link className="bg-rose-500 text-white px-6 py-2 rounded hover:bg-rose-600" href="/">
+        <Link
+          className="bg-rose-500 text-white px-6 py-2 rounded hover:bg-rose-600"
+          href="/"
+        >
           Back to Home
         </Link>
       </div>
