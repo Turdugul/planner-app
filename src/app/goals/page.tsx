@@ -9,6 +9,8 @@ import {
   toggleGoalCompletion,
   deleteGoalFromFirestore,
 } from '@/firebase/firestoreGoalsServices';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface Goal {
   id: string;
@@ -30,9 +32,11 @@ export default function Goals() {
       try {
         const fetchedGoals = await getGoalsFromFirestore();
         setGoals(fetchedGoals);
+       
       } catch (err) {
         console.error("Error fetching goals: ", err);
         setError('Failed to fetch goals. Please try again.');
+        toast.error('Failed to load goals.');
       } finally {
         setLoading(false);
       }
@@ -49,27 +53,33 @@ export default function Goals() {
         const newGoalId = await addGoalToFirestore(newGoalData);
         if (newGoalId) {
           setGoals([...goals, { id: newGoalId, ...newGoalData }]);
+          toast.success('Goal added successfully!');
         }
         setNewGoal('');
       } catch (err) {
         console.error("Error adding goal: ", err);
         setError('Failed to add goal. Please try again.');
+        toast.error('Failed to add goal.');
       }
+    } else {
+      toast.warn('Please enter a goal.');
     }
   };
 
   const toggleGoal = async (id: string, completed: boolean) => {
     setError(null);
     try {
-      await toggleGoalCompletion(id, !completed);
+      await toggleGoalCompletion(id, completed); // Correctly save the new completed state
       setGoals(
         goals.map((goal) =>
           goal.id === id ? { ...goal, completed: !completed } : goal
         )
       );
+      toast.info(`Goal marked as ${!completed ? 'completed' : 'incomplete'}.`);
     } catch (err) {
       console.error("Error toggling goal completion: ", err);
       setError('Failed to toggle goal. Please try again.');
+      toast.error('Failed to toggle goal.');
     }
   };
 
@@ -78,12 +88,15 @@ export default function Goals() {
     try {
       await deleteGoalFromFirestore(id);
       setGoals(goals.filter((goal) => goal.id !== id));
+      toast.success('Goal deleted successfully!');
     } catch (err) {
       console.error("Error deleting goal: ", err);
       setError('Failed to delete goal. Please try again.');
+      toast.error('Failed to delete goal.');
     }
   };
-
+  const completedGoals = goals.filter((goal) => goal.completed).length;
+  const uncompletedGoals = goals.length - completedGoals;
   return (
     <motion.div
       className="space-y-6"
@@ -92,7 +105,14 @@ export default function Goals() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h2 className="text-3xl font-bold text-center">🎯 Your Goals</h2>
+      <ToastContainer />
+        <div className="flex flex-row gap-6 justify-center space-x-4 py-4">
+        <h2 className="text-3xl font-bold text-center">🎯 Your Goals</h2>
+        <div className="flex text-xl py-1 rounded items-center space-x-2">
+          <span className="text-green-500">✅ {completedGoals}</span>
+          <span className="text-gray-500">❌ {uncompletedGoals}</span>
+        </div>
+      </div>
 
       {/* Error message */}
       {error && <div className="text-red-500 text-center">{error}</div>}
@@ -112,15 +132,16 @@ export default function Goals() {
         />
         <button
           onClick={addGoal}
-          className="bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600"
+          className="bg-rose-500  text-white px-1 sm:px-4 py-2 rounded hover:bg-rose-600"
           aria-label="Add goal"
         >
           Add Goal
         </button>
+        
       </div>
 
       {/* Goals list */}
-      <ul className="space-y-4  sm:w-[60%] mx-auto">
+      <ul className="space-y-4 sm:w-[60%] mx-auto">
         {goals.map((goal) => (
           <motion.li
             key={goal.id}

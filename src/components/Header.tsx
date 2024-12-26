@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-
 export default function Header() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,7 +18,7 @@ export default function Header() {
   return (
     <header className="bg-rose-600 w-full text-white p-4">
       <nav className="container flex justify-between items-center">
-        <h1 className="text-2xl font-bold">📍 Planner</h1>
+        <h1 className="text-2xl font-bold"> ☘️ Planner</h1>
 
         {/* Mobile Hamburger Menu */}
         <button

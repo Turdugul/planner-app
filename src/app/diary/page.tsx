@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { addDiaryEntry, getDiaryEntries, updateDiaryEntry, deleteDiaryEntry } from '@/firebase/firebaseDiaryService';
+import Link from 'next/link';
 
 interface DiaryEntry {
   id: string;
@@ -166,6 +167,14 @@ export default function Diary() {
       </div>
 
       <ToastContainer />
+      <div className="mt-6 text-center">
+        <Link
+          className="bg-rose-500 text-white px-6 py-2 rounded hover:bg-rose-600"
+          href="/"
+        >
+          Back to Home
+        </Link>
+      </div>
     </motion.div>
   );
 }

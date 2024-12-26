@@ -80,7 +80,7 @@ export default function Dashboard() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <h2 className="text-3xl font-bold text-center">📍 Dashboard</h2>
+      <h2 className="text-3xl font-bold text-center"> ☘️ Dashboard</h2>
 
       {/* Goal Overview */}
       <section className="bg-rose-100 p-6 rounded-lg shadow-lg">
