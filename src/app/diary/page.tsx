@@ -6,6 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { addDiaryEntry, getDiaryEntries, updateDiaryEntry, deleteDiaryEntry } from '@/firebase/firebaseDiaryService';
 import Link from 'next/link';
+import useAuth from '@/hooks/useAuth';
 
 interface DiaryEntry {
   id: string;
@@ -14,12 +15,13 @@ interface DiaryEntry {
 }
 
 export default function Diary() {
+  const { user, loading: authLoading } = useAuth();
   const [entry, setEntry] = useState('');
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
   const [editing, setEditing] = useState<string | null>(null); // To track which entry is being edited
   const [editedEntry, setEditedEntry] = useState('');
 
-  // Fetch diary entries from Firestore
+  // Function to fetch diary entries from Firestore
   const fetchDiaryEntries = async () => {
     try {
       const entries = await getDiaryEntries();
@@ -29,6 +31,13 @@ export default function Diary() {
       toast.error('Failed to load diary entries.');
     }
   };
+
+  // Fetch diary entries whenever user is authenticated or changes
+  useEffect(() => {
+    if (user) {
+      fetchDiaryEntries();
+    }
+  }, [user]);
 
   // Handle adding a new diary entry
   const handleSubmit = async () => {
@@ -79,10 +88,17 @@ export default function Diary() {
     }
   };
 
-  // Fetch diary entries when the component is mounted
-  useEffect(() => {
-    fetchDiaryEntries();
-  }, []);
+  if (authLoading) {
+    return <div className="text-center text-gray-500">Checking authentication...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center text-gray-500">
+        Please log in to access the diary.
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -118,7 +134,9 @@ export default function Diary() {
           {diaryEntries.map((entry) => (
             <div key={entry.id} className="border p-4 rounded shadow-md space-y-2">
               {/* Displaying Date */}
-              <p className="text-sm text-gray-500">{entry.date.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">
+                {entry.date instanceof Date ? entry.date.toLocaleString() : ''}
+              </p>
               {editing === entry.id ? (
                 <div>
                   <textarea

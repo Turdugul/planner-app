@@ -11,6 +11,7 @@ import {
 } from '@/firebase/firestoreGoalsServices';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import useAuth from '@/hooks/useAuth';
 
 interface Goal {
   id: string;
@@ -19,20 +20,21 @@ interface Goal {
 }
 
 export default function Goals() {
+  const { user, loading: authLoading } = useAuth(); // Check if user is authenticated
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoal, setNewGoal] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch goals from Firestore when component mounts
+  // Fetch goals from Firestore when user is authenticated
   useEffect(() => {
+    if (!user) return; // If no user, don't fetch goals
     const fetchGoals = async () => {
       setLoading(true);
       setError(null);
       try {
         const fetchedGoals = await getGoalsFromFirestore();
         setGoals(fetchedGoals);
-       
       } catch (err) {
         console.error("Error fetching goals: ", err);
         setError('Failed to fetch goals. Please try again.');
@@ -43,7 +45,7 @@ export default function Goals() {
     };
 
     fetchGoals();
-  }, []);
+  }, [user]);
 
   const addGoal = async () => {
     if (newGoal.trim()) {
@@ -69,7 +71,7 @@ export default function Goals() {
   const toggleGoal = async (id: string, completed: boolean) => {
     setError(null);
     try {
-      await toggleGoalCompletion(id, completed); // Correctly save the new completed state
+      await toggleGoalCompletion(id, completed);
       setGoals(
         goals.map((goal) =>
           goal.id === id ? { ...goal, completed: !completed } : goal
@@ -95,8 +97,23 @@ export default function Goals() {
       toast.error('Failed to delete goal.');
     }
   };
+
   const completedGoals = goals.filter((goal) => goal.completed).length;
   const uncompletedGoals = goals.length - completedGoals;
+
+  // Loading or authentication check
+  if (authLoading) {
+    return <div className="text-center text-gray-500">Checking authentication...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center text-gray-500">
+        Please log in to access your goals.
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className="space-y-6"
@@ -106,7 +123,7 @@ export default function Goals() {
       transition={{ duration: 0.5 }}
     >
       <ToastContainer />
-        <div className="flex flex-row gap-6 justify-center space-x-4 py-4">
+      <div className="flex flex-row gap-6 justify-center space-x-4 py-4">
         <h2 className="text-3xl font-bold text-center">🎯 Your Goals</h2>
         <div className="flex text-xl py-1 rounded items-center space-x-2">
           <span className="text-green-500">✅ {completedGoals}</span>
@@ -132,12 +149,11 @@ export default function Goals() {
         />
         <button
           onClick={addGoal}
-          className="bg-rose-500  text-white px-1 sm:px-4 py-2 rounded hover:bg-rose-600"
+          className="bg-rose-500 text-white px-1 sm:px-4 py-2 rounded hover:bg-rose-600"
           aria-label="Add goal"
         >
           Add Goal
         </button>
-        
       </div>
 
       {/* Goals list */}

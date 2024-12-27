@@ -11,6 +11,7 @@ import {
 } from '@/firebase/firebasePlanService';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import useAuth from '@/hooks/useAuth';
 
 interface Task {
   id: string;
@@ -19,6 +20,7 @@ interface Task {
 }
 
 export default function Planner() {
+  const { user, loading: authLoading } = useAuth(); // Check for user authentication
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   const [timeSlot, setTimeSlot] = useState('09:00');
@@ -26,7 +28,9 @@ export default function Planner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch tasks from Firestore when user is authenticated
   useEffect(() => {
+    if (!user) return; // If no user, don't fetch tasks
     const fetchTasks = async () => {
       setLoading(true);
       setError(null);
@@ -42,8 +46,9 @@ export default function Planner() {
     };
 
     fetchTasks();
-  }, []);
+  }, [user]);
 
+  // Add or update a task
   const addOrUpdateTask = async () => {
     if (!newTask.trim()) return;
 
@@ -71,18 +76,21 @@ export default function Planner() {
     }
   };
 
+  // Start editing an existing task
   const startEditingTask = (task: Task) => {
     setEditingTask(task);
     setNewTask(task.task);
     setTimeSlot(task.time);
   };
 
+  // Cancel editing a task
   const cancelEditing = () => {
     setEditingTask(null);
     setNewTask('');
     setTimeSlot('09:00');
   };
 
+  // Delete a task
   const deleteTask = async (id: string) => {
     setError(null);
     try {
@@ -95,6 +103,19 @@ export default function Planner() {
       toast.error('Error deleting task. Please try again.');
     }
   };
+
+  // Loading or authentication check
+  if (authLoading) {
+    return <div className="text-center text-gray-500">Checking authentication...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center text-gray-500">
+        Please log in to access your planner.
+      </div>
+    );
+  }
 
   return (
     <motion.div
