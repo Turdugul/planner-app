@@ -166,7 +166,7 @@ export default function Diary() {
                   <div className="flex justify-end gap-3 mt-2">
                     <button
                       onClick={() => handleEdit(entry.id, entry.content)}
-                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-yellow-300"
                     >
                       Edit
                     </button>

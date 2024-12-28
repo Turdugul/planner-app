@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/firebase/firebaseConfig';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LoginLogic } from './Login';
+import LoginLogic from './Login';
 
 export default function Header() {
   const [user, setUser] = useState<{
@@ -14,11 +16,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname(); // Get the current pathname for active link checking
 
-  // Use the LoginLogic functions
-  const { login, logout } = LoginLogic({
-    onUserChange: (loggedInUser) => setUser(loggedInUser),
-  });
-
+  // Menu items configuration
   const menuLinks = [
     { href: '/', label: 'Home' },
     { href: '/dashboard', label: 'Dashboard' },
@@ -27,6 +25,33 @@ export default function Header() {
     { href: '/diary', label: 'Diary' },
   ];
 
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (loggedInUser) => {
+      if (loggedInUser) {
+        setUser({
+          displayName: loggedInUser.displayName,
+          photoURL: loggedInUser.photoURL,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Handle mobile menu toggle
   const handleToggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -37,18 +62,8 @@ export default function Header() {
         <h1 className="text-2xl font-bold">☘️ Planner</h1>
 
         {/* Mobile Hamburger Menu */}
-        <button
-          onClick={handleToggleMenu}
-          className="lg:hidden text-white focus:outline-none"
-          aria-label="Toggle navigation menu"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            className="w-6 h-6"
-          >
+        <button onClick={handleToggleMenu} className="lg:hidden text-white focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
@@ -61,9 +76,7 @@ export default function Header() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`text-white ${
-                      pathname === link.href ? 'text-yellow-300 font-bold glow-effect' : 'hover:text-yellow-300'
-                    }`}
+                    className={`text-white ${pathname === link.href ? 'text-yellow-300 font-bold glow-effect' : 'hover:text-yellow-300'}`}
                   >
                     {link.label}
                   </Link>
@@ -72,21 +85,16 @@ export default function Header() {
               <li className="text-white">{`Hello, ${user.displayName}`}</li>
               <li>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="bg-blue-500 text-white px-4 py-2 rounded hover:text-black hover:bg-yellow-300"
                 >
-                  Logout
+                  Sign Out
                 </button>
               </li>
             </>
           ) : (
             <li>
-              <button
-                onClick={login}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Sign in with Google
-              </button>
+              <LoginLogic onUserChange={setUser} />
             </li>
           )}
         </ul>
@@ -97,36 +105,29 @@ export default function Header() {
             {user ? (
               <>
                 <li className="text-white">{`Hello, ${user.displayName}`}</li>
+                <li>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-yellow-400"
+                  >
+                    Sign Out
+                  </button>
+                </li>
                 {menuLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
                       onClick={handleToggleMenu} // Close the menu when a link is clicked
-                      className={`text-white ${
-                        pathname === link.href ? 'text-yellow-300 font-bold glow-effect' : 'hover:text-yellow-300'
-                      }`}
+                      className={`text-white ${pathname === link.href ? 'text-yellow-300 font-bold glow-effect' : 'hover:text-yellow-300'}`}
                     >
                       {link.label}
                     </Link>
                   </li>
                 ))}
-                <li>
-                  <button
-                    onClick={logout}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-yellow-400"
-                  >
-                    Logout
-                  </button>
-                </li>
               </>
             ) : (
               <li>
-                <button
-                  onClick={login}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Sign in with Google
-                </button>
+                <LoginLogic onUserChange={setUser} />
               </li>
             )}
           </ul>
