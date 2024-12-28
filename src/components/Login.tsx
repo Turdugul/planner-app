@@ -1,59 +1,66 @@
-import { auth } from "@/firebase/firebaseConfig";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+'use client';
 
-const Login = () => {
+import { useEffect } from 'react';
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { auth } from '@/firebase/firebaseConfig';
+import { isMobile } from 'react-device-detect';
+
+interface LoginProps {
+  onUserChange: (user: { displayName: string | null; photoURL: string | null } | null) => void;
+}
+
+export function LoginLogic({ onUserChange }: LoginProps) {
   const provider = new GoogleAuthProvider();
 
-  const handleLogin = async () => {
+  // Handle Login
+  const login = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      console.log("User Info:", {
-        name: user.displayName,
-        email: user.email,
-        photo: user.photoURL,
-      });
-
-      // Optional: Store user info in Firestore
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Login failed:", error.message);
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
       } else {
-        console.error("An unexpected error occurred:", error);
+        const result = await signInWithPopup(auth, provider);
+        const loggedInUser = result.user;
+        onUserChange({
+          displayName: loggedInUser.displayName,
+          photoURL: loggedInUser.photoURL,
+        });
       }
+    } catch (error) {
+      console.error('Error logging in:', error);
     }
   };
 
-  const handleLogout = async () => {
+  // Handle Logout
+  const logout = async () => {
     try {
       await signOut(auth);
-      console.log("User signed out.");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Logout failed:", error.message);
-      } else {
-        console.error("An unexpected error occurred:", error);
-      }
+      onUserChange(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
-  return (
-    <div className="flex flex-col items-center">
-      <button
-        onClick={handleLogin}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        Sign in with Google
-      </button>
-      <button
-        onClick={handleLogout}
-        className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-      >
-        Sign Out
-      </button>
-    </div>
-  );
-};
+  // Check if user is already logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (loggedInUser) => {
+      if (loggedInUser) {
+        onUserChange({
+          displayName: loggedInUser.displayName,
+          photoURL: loggedInUser.photoURL,
+        });
+      } else {
+        onUserChange(null);
+      }
+    });
 
-export default Login;
+    return () => unsubscribe();
+  }, [onUserChange]);
+
+  return { login, logout };
+}
